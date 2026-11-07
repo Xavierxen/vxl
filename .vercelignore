@@ -1,0 +1,9 @@
+.git
+.agents
+.migration-backup
+.local
+.replit
+.replitignore
+replit.md
+**/dist
+**/*.tsbuildinfo

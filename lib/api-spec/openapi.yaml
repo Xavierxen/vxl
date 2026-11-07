@@ -1,0 +1,299 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /meta/anilist/home:
+    get:
+      operationId: getAnimeHome
+      tags: [anime]
+      summary: Browse the anime home page
+      responses:
+        "200":
+          description: Featured, trending, seasonal, and popular anime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimeHomeResponse"
+  /meta/anilist/search/{query}:
+    get:
+      operationId: searchAnime
+      tags: [anime]
+      summary: Search the anime catalog
+      parameters:
+        - name: query
+          in: path
+          required: true
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: perPage
+          in: query
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: Matching anime and pagination metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimeSearchResponse"
+  /meta/anilist/anime/{id}:
+    get:
+      operationId: getAnimeDetail
+      tags: [anime]
+      summary: Read anime details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Anime metadata and recommendations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimeDetailResponse"
+  /anime/anivexa/episodes/{provider}/{id}:
+    get:
+      operationId: getAnimeEpisodes
+      tags: [anime]
+      summary: Load episodes for a provider
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: map
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Subtitled and dubbed episodes grouped by provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimeEpisodeIndex"
+  /anime/anivexa/watch/{provider}/{id}/{audio}/{providerEpisode}:
+    get:
+      operationId: getAnimeWatchSources
+      tags: [anime]
+      summary: Resolve a selected episode's available streams
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: audio
+          in: path
+          required: true
+          schema: { type: string, enum: [sub, dub] }
+        - name: providerEpisode
+          in: path
+          required: true
+          description: Provider name followed by the episode number, for example reanime-1
+          schema: { type: string }
+      responses:
+        "200":
+          description: Resolved playable stream sources
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimeWatchResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    AnimeCard:
+      type: object
+      required: [id, title, poster]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        poster: { type: string }
+        banner: { type: string }
+        logo: { type: string }
+        description: { type: string }
+        type: { type: string }
+        status: { type: string }
+        season: { type: string }
+        seasonYear: { type: integer }
+        episode: { type: ["integer", "null"] }
+        episodes: { type: ["integer", "null"] }
+        averageScore: { type: ["integer", "null"] }
+    AnimeHomeData:
+      type: object
+      properties:
+        spotlight:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        recently-added:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        popular-anime:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        popular-movies:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        seasonal-anime:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        anime-of-all-time:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+        coming-soon:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+    AnimeHomeResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: "#/components/schemas/AnimeHomeData" }
+    AnimeSearchData:
+      type: object
+      properties:
+        pageInfo:
+          type: object
+          additionalProperties: true
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeCard" }
+    AnimeSearchResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: "#/components/schemas/AnimeSearchData" }
+    AnimeDetail:
+      allOf:
+        - $ref: "#/components/schemas/AnimeCard"
+        - type: object
+          properties:
+            titleRomaji: { type: string }
+            titleNative: { type: string }
+            totalEpisodes: { type: ["integer", "null"] }
+            duration: { type: ["integer", "null"] }
+            genres:
+              type: array
+              items: { type: string }
+            studios:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  isAnimationStudio: { type: boolean }
+            recommendations:
+              type: array
+              items: { $ref: "#/components/schemas/AnimeCard" }
+            trailer:
+              type: ["object", "null"]
+              properties:
+                id: { type: string }
+                site: { type: string }
+                thumbnail: { type: string }
+    AnimeDetailResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: "#/components/schemas/AnimeDetail" }
+    AnimeEpisode:
+      type: object
+      properties:
+        id: { type: string }
+        number: { type: number }
+        title: { type: string }
+        image: { type: ["string", "null"] }
+        duration: { type: ["integer", "null"] }
+        audio: { type: string }
+    AnimeAudioEpisodes:
+      type: object
+      properties:
+        sub:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeEpisode" }
+        dub:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeEpisode" }
+    AnimeProviderEpisodeData:
+      type: object
+      properties:
+        error: { type: string }
+        episodes: { $ref: "#/components/schemas/AnimeAudioEpisodes" }
+        meta:
+          type: object
+          additionalProperties: true
+    AnimeEpisodeIndex:
+      type: object
+      properties:
+        page: { type: integer }
+        type: { type: string }
+        mappings: { type: ["object", "null"], additionalProperties: true }
+      additionalProperties:
+        $ref: "#/components/schemas/AnimeProviderEpisodeData"
+    AnimeStream:
+      type: object
+      properties:
+        url: { type: string }
+        proxiedUrl: { type: string }
+        type: { type: string }
+        server: { type: string }
+        subtitles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    AnimeWatchResponse:
+      type: object
+      properties:
+        anime: { type: string }
+        ep: { type: integer }
+        audio: { type: string }
+        stream_url: { type: string }
+        proxiedUrl: { type: string }
+        server: { type: string }
+        streams:
+          type: array
+          items: { $ref: "#/components/schemas/AnimeStream" }
+        subtitles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        error: { type: string }
+
