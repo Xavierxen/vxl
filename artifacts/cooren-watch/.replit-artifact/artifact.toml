@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Cooren Anime"
+description = "An anime discovery and watch site that loads real catalog metadata and episode sources from the Cooren API."
+version = "1.0.0"
+id = "artifacts/cooren-watch"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24228
+
+[services.development]
+run = "pnpm --filter @workspace/cooren-watch run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cooren-watch", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/cooren-watch/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24228"
+BASE_PATH = "/"
